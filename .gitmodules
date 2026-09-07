@@ -1,0 +1,3 @@
+[submodule "external/raiden"]
+	path = external/raiden
+	url = https://github.com/FrontierLabs/RAIDEN.git

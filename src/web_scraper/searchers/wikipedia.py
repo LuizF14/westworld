@@ -6,9 +6,10 @@ from registry import searchers
 class WikipediaProvider(Searcher):
     API_URL = "https://en.wikipedia.org/w/api.php"
 
-    def __init__(self, language: str = "en"):
+    def __init__(self, language: str = "en", user_agent: str = "westworld-research-bot/0.1",):
         self.api_url = f"https://{language}.wikipedia.org/w/api.php"
-        self.client = httpx.Client(headers={"User-Agent": "WestworldBot/1.0 (luizfelipecp2016@gmail.com)"})
+        self.headers = {"User-Agent": user_agent}
+        self.client = httpx.Client(headers=self.headers)
 
     def search(self, query: str, max_results: int = 10) -> list[SearchResult]:
         params = {

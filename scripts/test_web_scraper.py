@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from dataclasses import asdict
 
 import yaml
 
@@ -11,6 +12,8 @@ from registry import searchers, fetchers, extractors
 import web_scraper.searchers.wikipedia
 import web_scraper.fetchers.http_fetcher
 import web_scraper.extractors.html_extractor
+
+from pipelines.character_description_pipeline import CharacterDescriptionPipeline
 
 
 def load_config(path: str) -> dict:
@@ -29,37 +32,15 @@ def main():
     fetcher = fetchers.build(cfg["fetcher"]["name"], **cfg["fetcher"].get("params", {}))
     extractor = extractors.build(cfg["extractor"]["name"], **cfg["extractor"].get("params", {}))
 
-    results = searcher.search(cfg["query"], max_results=cfg.get("max_results", 5))
-    print(f"\n{len(results)} results for '{cfg['query']}':\n")
-    for r in results:
-        print(f"- {r.title}\n  {r.url}")
-
-    documents = []
-    for r in results:
-        page = fetcher.fetch(r.url)
-        if page is None:
-            print(f"[skip:fetch] {r.url}")
-            continue
-
-        doc = extractor.extract(page)
-        if doc is None:
-            print(f"[skip:extract] {r.url}")
-            continue
-
-        print(f"[ok] {r.url} -> {len(doc.text)} chars")
-        documents.append({
-            "url": doc.url,
-            "title": doc.title,
-            "text": doc.text,
-            "extracted_at": doc.extracted_at.isoformat(),
-        })
+    pipeline = CharacterDescriptionPipeline(searcher, fetcher, extractor)
+    description = pipeline.run(cfg["query"])
 
     out_path = Path(cfg["output"]["path"])
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(documents, f, ensure_ascii=False, indent=2)
+        json.dump(asdict(description), f, ensure_ascii=False, indent=2)
 
-    print(f"\n{len(documents)}/{len(results)} documents saved in: {out_path}")
+    print(f"\nDocuments saved in: {out_path}")
 
 
 if __name__ == "__main__":

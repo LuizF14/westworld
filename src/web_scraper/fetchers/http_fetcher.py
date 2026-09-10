@@ -45,7 +45,7 @@ class HttpFetcher(Fetcher):
             resp = self.client.get(url, timeout=self.timeout, follow_redirects=True)
             resp.raise_for_status()
         except httpx.HTTPError as e:
-            print(f"[HttpFetcher] Falha ao buscar {url}: {e}")
+            print(f"[HttpFetcher] Failed to fetch {url}: {e}")
             return None
 
         content_type = "html" if "text/html" in resp.headers.get("content-type", "") else "text"

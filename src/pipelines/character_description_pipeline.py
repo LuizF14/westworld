@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 from web_scraper.base import Searcher, Fetcher, Extractor
+from agents.base import CharacterAgent
 
 @dataclass
 class CharacterDescriptionResult:
     character_name: str
     description: str
+    num_sources: int
 
 class CharacterDescriptionPipeline:
     def __init__(
@@ -12,11 +14,13 @@ class CharacterDescriptionPipeline:
         searcher: Searcher,
         fetcher: Fetcher,
         html_extractor: Extractor,
+        description_agent: CharacterAgent,
         max_results_per_query: int = 5,
     ):
         self.searcher = searcher
         self.fetcher = fetcher
         self.html_extractor = html_extractor
+        self.description_agent = description_agent
         self.max_results_per_query = max_results_per_query
 
     def run(self, character_name: str) -> CharacterDescriptionResult:
@@ -41,6 +45,16 @@ class CharacterDescriptionPipeline:
             print(f"[ok] {r.url} -> {len(doc.text)} chars")
             documents.append(doc.text)
 
-        description = ' '.join(documents)
-        result = CharacterDescriptionResult(character_name=character_name, description=description)
+        if not documents:
+            raise RuntimeError(f"Nenhum documento extraído para '{character_name}'.")
+
+        description = self.description_agent.generate_description(character_name, documents)
+
+        print(f"Description: {description}")
+        
+        result = CharacterDescriptionResult(
+            character_name=character_name, 
+            description=description,
+            num_sources=len(documents)
+        )
         return result

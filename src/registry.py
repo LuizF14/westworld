@@ -28,3 +28,4 @@ class Registry(Generic[T]):
 searchers = Registry("searcher")
 fetchers = Registry("fetcher")
 extractors = Registry("extractor")
+agents = Registry("agents")

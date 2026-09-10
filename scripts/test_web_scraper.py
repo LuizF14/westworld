@@ -12,6 +12,7 @@ from registry import searchers, fetchers, extractors
 import web_scraper.searchers.wikipedia
 import web_scraper.fetchers.http_fetcher
 import web_scraper.extractors.html_extractor
+from agents.description_agent import DescriptionAgent
 
 from pipelines.character_description_pipeline import CharacterDescriptionPipeline
 
@@ -32,7 +33,9 @@ def main():
     fetcher = fetchers.build(cfg["fetcher"]["name"], **cfg["fetcher"].get("params", {}))
     extractor = extractors.build(cfg["extractor"]["name"], **cfg["extractor"].get("params", {}))
 
-    pipeline = CharacterDescriptionPipeline(searcher, fetcher, extractor)
+    agent = DescriptionAgent(model=cfg["description_agent"]["model"], temperature=cfg["description_agent"]["temperature"])
+
+    pipeline = CharacterDescriptionPipeline(searcher, fetcher, extractor, description_agent=agent)
     description = pipeline.run(cfg["query"])
 
     out_path = Path(cfg["output"]["path"])

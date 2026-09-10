@@ -18,5 +18,9 @@ extractor:
   params:
     min_length: 200
 
+description_agent:
+  model: "ollama/llama3"
+  temperature: 0.3
+
 output:
   path: data/raw/web_scrape/_debug/web_scrape_test.json

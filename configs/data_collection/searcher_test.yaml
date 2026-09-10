@@ -1,0 +1,10 @@
+searcher:
+  name: wikipedia
+  params:
+    language: en
+
+query: "Ben 10"
+max_results: 5
+
+output:
+  path: data/raw/web_scrape/_debug/searcher_test_output.json

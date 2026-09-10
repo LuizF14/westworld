@@ -13,6 +13,10 @@ fetcher:
     user_agent: "westworld-research-bot/0.1 (seu-email@exemplo.com)"
     cache_dir: data/raw/web_scrape/_debug/cache
 
+extractor:
+  name: html
+  params:
+    min_length: 200
 
 output:
   path: data/raw/web_scrape/_debug/web_scrape_test.json

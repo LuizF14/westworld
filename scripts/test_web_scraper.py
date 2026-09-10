@@ -7,9 +7,10 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from registry import searchers, fetchers
+from registry import searchers, fetchers, extractors
 import web_scraper.searchers.wikipedia
 import web_scraper.fetchers.http_fetcher
+import web_scraper.extractors.html_extractor
 
 
 def load_config(path: str) -> dict:
@@ -18,45 +19,47 @@ def load_config(path: str) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Test searcher + fetcher.")
-    parser.add_argument("--config", required=True, help="Path to the YAML config file.")
+    parser = argparse.ArgumentParser(description="Test searcher + fetcher + extractor.")
+    parser.add_argument("--config", required=True)
     args = parser.parse_args()
 
     cfg = load_config(args.config)
 
-    searcher_cfg = cfg["searcher"]
-    fetcher_cfg = cfg["fetcher"]
-    searcher = searchers.build(searcher_cfg["name"], **searcher_cfg.get("params", {}))
-    fetcher = fetchers.build(fetcher_cfg["name"], **fetcher_cfg.get("params", {}))
+    searcher = searchers.build(cfg["searcher"]["name"], **cfg["searcher"].get("params", {}))
+    fetcher = fetchers.build(cfg["fetcher"]["name"], **cfg["fetcher"].get("params", {}))
+    extractor = extractors.build(cfg["extractor"]["name"], **cfg["extractor"].get("params", {}))
 
     results = searcher.search(cfg["query"], max_results=cfg.get("max_results", 5))
     print(f"\n{len(results)} results for '{cfg['query']}':\n")
     for r in results:
         print(f"- {r.title}\n  {r.url}")
 
-    fetched = []
+    documents = []
     for r in results:
         page = fetcher.fetch(r.url)
         if page is None:
-            print(f"[skip] failed to fetch: {r.url}")
+            print(f"[skip:fetch] {r.url}")
             continue
 
-        print(f"[ok] {r.url} -> {len(page.content)} chars, status={page.status_code}")
-        fetched.append({
-            "url": page.url,
-            "title": r.title,
-            "content_type": page.content_type,
-            "status_code": page.status_code,
-            "fetched_at": page.fetched_at.isoformat(),
-            "content": page.content,
+        doc = extractor.extract(page)
+        if doc is None:
+            print(f"[skip:extract] {r.url}")
+            continue
+
+        print(f"[ok] {r.url} -> {len(doc.text)} chars")
+        documents.append({
+            "url": doc.url,
+            "title": doc.title,
+            "text": doc.text,
+            "extracted_at": doc.extracted_at.isoformat(),
         })
 
     out_path = Path(cfg["output"]["path"])
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(fetched, f, ensure_ascii=False, indent=2)
+        json.dump(documents, f, ensure_ascii=False, indent=2)
 
-    print(f"\n{len(fetched)}/{len(results)} pages saved in: {out_path}")
+    print(f"\n{len(documents)}/{len(results)} documents saved in: {out_path}")
 
 
 if __name__ == "__main__":

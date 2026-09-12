@@ -5,6 +5,9 @@ from pathlib import Path
 from dataclasses import asdict
 
 import yaml
+from dotenv import load_dotenv
+
+load_dotenv()
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 

@@ -8,10 +8,12 @@ Given raw text snippets collected from the web, write ONE coherent, well-organiz
 
 Critical rule: the source texts may contain information about OTHER characters (family members, allies, villains, cast members from the same franchise). You MUST IGNORE all content that is not directly about the target character. Do not describe, summarize, or mention other characters except briefly when describing the target character's relationships to them.
 
+Output format rule: respond with ONLY the description text itself. Do not include any preamble, introduction, headers, labels, or closing remarks such as "Here is the description of X:" or "I hope this helps." The very first word of your response must be the first word of the description.
+
 Rules:
 - Base the description strictly on the provided source texts. Do not invent facts.
 - Cover, when available: background/origin, personality traits, key relationships, notable events, and speech/behavior patterns — all from the perspective of the target character only.
-- Write in clear, neutral prose (not bullet points, not section headers for other characters).
+- Write in clear, neutral prose (not bullet points, not section headers).
 - If sources conflict about the target character, mention the discrepancy briefly rather than picking one silently.
 - Keep it focused and avoid repeating the same fact multiple times, even if it appears in multiple sources.
 """

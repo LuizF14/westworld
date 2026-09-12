@@ -19,7 +19,7 @@ extractor:
     min_length: 200
 
 description_agent:
-  model: "ollama/llama3"
+  model: "groq/openai/gpt-oss-20b"
   temperature: 0.3
 
 output:

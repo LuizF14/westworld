@@ -13,41 +13,42 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from registry import searchers, fetchers, extractors
 import web_scraper.searchers.wikipedia
+import web_scraper.searchers.duckduckgo
 import web_scraper.fetchers.http_fetcher
 import web_scraper.extractors.html_extractor
-from agents.description_agent import DescriptionAgent
+from agents.keyword_agent import KeywordAgent
 
-from pipelines.character_description_pipeline import CharacterDescriptionPipeline
+from pipelines.character_extended_info_pipeline import CharacterExtendedInfoPipeline
 
 
 def load_config(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Search + fetcher + extractor.")
+    parser = argparse.ArgumentParser(description="Searcher + fetcher + extractor + keyword + searcher.")
     parser.add_argument("--config", required=True)
     args = parser.parse_args()
 
     cfg = load_config(args.config)
 
-    searcher = searchers.build(cfg["searcher"]["name"], **cfg["searcher"].get("params", {}))
+    base_searcher = searchers.build(cfg["base_searcher"]["name"], **cfg["base_searcher"].get("params", {}))
+    keyword_searcher = searchers.build(cfg["keyword_searcher"]["name"], **cfg["keyword_searcher"].get("params", {}))
     fetcher = fetchers.build(cfg["fetcher"]["name"], **cfg["fetcher"].get("params", {}))
     extractor = extractors.build(cfg["extractor"]["name"], **cfg["extractor"].get("params", {}))
 
-    agent = DescriptionAgent(model=cfg["description_agent"]["model"], temperature=cfg["description_agent"]["temperature"])
+    keyword_agent = KeywordAgent(model=cfg["description_agent"]["model"], temperature=cfg["description_agent"]["temperature"])
 
-    pipeline = CharacterDescriptionPipeline(searcher, fetcher, extractor, description_agent=agent)
-    description = pipeline.run(cfg["query"])
+    pipeline = CharacterExtendedInfoPipeline(base_searcher, keyword_searcher, fetcher, extractor, keyword_agent)
+
+    extended_info = pipeline.run(cfg["query"])
 
     out_path = Path(cfg["output"]["path"])
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(asdict(description), f, ensure_ascii=False, indent=2)
-
+        json.dump(asdict(extended_info), f, ensure_ascii=False, indent=2)
+    
     print(f"\nDocuments saved in: {out_path}")
-
 
 if __name__ == "__main__":
     main()

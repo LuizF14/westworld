@@ -2,8 +2,6 @@ from dataclasses import dataclass, field
 from web_scraper.base import Searcher, Fetcher, Extractor
 from agents.base import CharacterAgent
 
-import time
-
 @dataclass
 class CharacterDescriptionResult:
     character_name: str
@@ -50,15 +48,13 @@ class CharacterDescriptionPipeline:
             documents.append(doc.text)
 
         if not documents:
-            raise RuntimeError(f"Nenhum documento extraído para '{character_name}'.")
+            raise RuntimeError(f"No document extracted to '{character_name}'.")
 
         descriptions = []
         for i in range(self.num_variants):
             description = self.description_agent.generate_description(character_name, documents)
             print(f"\n--- Variant {i + 1} ---\n{description}\n")
             descriptions.append(description)
-            if i < self.num_variants - 1:
-                time.sleep(15)
 
         result = CharacterDescriptionResult(
             character_name=character_name,

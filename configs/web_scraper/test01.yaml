@@ -1,0 +1,32 @@
+base_searcher:
+  name: wikipedia
+  params:
+    language: en
+    user_agent: "westworld-research-bot/0.1 (seu-email@exemplo.com)"
+
+keyword_searcher:
+  name: duckduckgo
+  params:
+    region: wt-wt
+    safesearch: moderate
+
+query: "Ben 10"
+max_results: 5
+
+fetcher:
+  name: http
+  params:
+    user_agent: "westworld-research-bot/0.1 (seu-email@exemplo.com)"
+    cache_dir: data/raw/web_scrape/_debug/cache
+
+extractor:
+  name: html
+  params:
+    min_length: 200
+
+description_agent:
+  model: "groq/openai/gpt-oss-20b"
+  temperature: 0.3
+
+output:
+  path: data/raw/web_scrape/_debug/web_scrape_extended_test.json

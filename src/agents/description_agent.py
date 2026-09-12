@@ -24,14 +24,13 @@ class DescriptionAgent(CharacterAgent):
     def __init__(
         self,
         model: str = "ollama/llama3",
+        temperature: float = 0.3,
         max_chars_per_source: int = 4000,
         max_total_chars: int = 20000,
-        temperature: float = 0.3,
     ):
-        self.model = model
+        super().__init__(model, temperature)
         self.max_chars_per_source = max_chars_per_source
         self.max_total_chars = max_total_chars
-        self.temperature = temperature
 
     def _build_context(self, source_texts: list[str]) -> str:
         trimmed = [t[: self.max_chars_per_source] for t in source_texts]
@@ -53,13 +52,4 @@ Source texts:
 
 Write the unified character description of {character_name} now."""
 
-        response = litellm.completion(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=self.temperature,
-        )
-
-        return response.choices[0].message.content.strip()
+        return self._complete(SYSTEM_PROMPT, user_prompt).strip()

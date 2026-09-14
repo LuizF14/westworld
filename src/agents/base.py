@@ -47,9 +47,18 @@ class CharacterAgent(ABC):
         )
         return response.choices[0].message.content
 
-    def _chunk_text(self, text: str, max_chars: int, overlap: int = 200) -> list[str]:
+    def _chunk_text(self, text: str | list[str], max_chars: int, overlap: int = 200) -> list[str]:
+        if isinstance(text, list):
+            chunks = []
+            for item in text:
+                chunks += self._chunk_single_text(item, max_chars, overlap)
+            return chunks
+
+        return self._chunk_single_text(text, max_chars, overlap)
+
+    def _chunk_single_text(self, text: str, max_chars: int, overlap: int = 200) -> list[str]:
         if len(text) <= max_chars:
-            return [text]
+            return [text.strip()] if text.strip() else []
 
         chunks = []
         start = 0
@@ -59,7 +68,7 @@ class CharacterAgent(ABC):
 
             if end < len(text):
                 last_break = max(chunk.rfind("\n\n"), chunk.rfind(". "))
-                if last_break > max_chars * 0.5:  
+                if last_break > max_chars * 0.5:
                     chunk = chunk[: last_break + 1]
                     end = start + last_break + 1
 

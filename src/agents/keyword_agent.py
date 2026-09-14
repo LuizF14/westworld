@@ -20,27 +20,6 @@ Rules:
 - Base keywords strictly on what is present or implied in the provided text.
 """
 
-SUB_KEYWORDS_SYSTEM_PROMPT = """You are a research assistant helping build character profiles for a role-playing LLM benchmark.
-Given a character, a core keyword about that character, and source text, generate specific and detailed SUB-KEYWORDS that expand on that core keyword.
-
-Output format rule: respond with ONLY a numbered list, one sub-keyword per line, in the format:
-1. sub-keyword
-2. sub-keyword
-Do not include any preamble, introduction, headers, or closing remarks. The very first character of your response must be "1".
-
-Rules:
-- Each sub-keyword must be a short phrase (a few words), not a full sentence.
-- Sub-keywords must expand specifically on the given core keyword, not on the character in general.
-- Do not repeat similar sub-keywords; each one should cover a distinct aspect.
-- Base sub-keywords strictly on what is present or implied in the provided text.
-"""
-
-@dataclass
-class CoreKeyword:
-    name: str
-    sub_keywords: list[str] = field(default_factory=list)
-
-
 @agents.register("keyword_agent")
 class KeywordAgent(CharacterAgent):
     def __init__(
@@ -67,7 +46,7 @@ class KeywordAgent(CharacterAgent):
                 items.append(item)
         return items
 
-    def generate_core_keywords(self, character_name: str, context: str) -> list[str]:
+    def _extract_keywords(self, character_name: str, context: str) -> list[str]:
         user_prompt = f"""Target character: {character_name}
 
 Source text:
@@ -78,30 +57,12 @@ Generate {self.num_core_keywords} core keywords about {character_name} now."""
         response = self._complete(CORE_KEYWORDS_SYSTEM_PROMPT, user_prompt)
         return self._parse_list(response)
 
-    def generate_sub_keywords(self, character_name: str, core_keyword: str, context: str) -> list[str]:
-        user_prompt = f"""Target character: {character_name}
-Core keyword: {core_keyword}
-
-Source text:
-{context}
-
-Generate {self.num_sub_keywords} sub-keywords about {character_name}'s "{core_keyword}" now."""
-
-        response = self._complete(SUB_KEYWORDS_SYSTEM_PROMPT, user_prompt) 
-
-        return self._parse_list(response)
-
-    def generate_keywords(self, character_name: str, context: str) -> list[CoreKeyword]:
+    def generate_keywords(self, character_name: str, context: str) -> list[str]:
         chunks = self._chunk_text(context, self.input_max_size)
 
-        core_name_chunk_pairs: list[tuple[str, str]] = []
-        for chunk in tqdm(chunks, desc="Extraindo core keywords", unit="chunk"):
-            names = self.generate_core_keywords(character_name, chunk)
-            core_name_chunk_pairs += [(name, chunk) for name in names]
-
         core_keywords = []
-        for name, source_chunk in tqdm(core_name_chunk_pairs, desc="Gerando sub-keywords", unit="keyword"):
-            sub_keywords = self.generate_sub_keywords(character_name, name, source_chunk)
-            core_keywords.append(CoreKeyword(name=name, sub_keywords=sub_keywords))
+        for chunk in tqdm(chunks, desc="Extracting keywords", unit="chunk"):
+            names = self._extract_keywords(character_name, chunk)
+            core_keywords += names
 
         return core_keywords

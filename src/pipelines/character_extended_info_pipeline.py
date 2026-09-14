@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
 from web_scraper.base import Searcher, Fetcher, Extractor
-from agents.keyword_agent import KeywordAgent, CoreKeyword
+from agents.keyword_agent import KeywordAgent
 
 @dataclass 
 class CharacterExtendedInfo:
     character_name: str
-    keywords: list[CoreKeyword] = field(default_factory=list)
+    keywords: list[str] = field(default_factory=list)
     main_documents: list[str] = field(default_factory=list)
     extended_documents: list[str] = field(default_factory=list)
 

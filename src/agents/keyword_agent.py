@@ -60,9 +60,9 @@ Generate {self.num_core_keywords} core keywords about {character_name} now."""
     def generate_keywords(self, character_name: str, context: str) -> list[str]:
         chunks = self._chunk_text(context, self.input_max_size)
 
-        core_keywords = []
+        core_keywords = set()
         for chunk in tqdm(chunks, desc="Extracting keywords", unit="chunk"):
             names = self._extract_keywords(character_name, chunk)
-            core_keywords += names
+            core_keywords.update(names)
 
-        return core_keywords
+        return list(core_keywords)

@@ -25,17 +25,14 @@ class DescriptionAgent(CharacterAgent):
         self,
         model: str = "ollama/llama3",
         temperature: float = 0.3,
-        max_chars_per_source: int = 4000,
-        max_total_chars: int = 20000,
+        input_max_size: int = 4000
     ):
-        super().__init__(model, temperature)
-        self.max_chars_per_source = max_chars_per_source
-        self.max_total_chars = max_total_chars
+        super().__init__(model, temperature, input_max_size)
 
     def _build_context(self, source_texts: list[str]) -> str:
-        trimmed = [t[: self.max_chars_per_source] for t in source_texts]
+        trimmed = [t[: self.input_max_size] for t in source_texts]
         context = "\n\n---\n\n".join(trimmed)
-        return context[: self.max_total_chars]
+        return context
 
     def generate_description(self, character_name: str, source_texts: list[str]) -> str:
         if not source_texts:

@@ -1,7 +1,6 @@
-import litellm
-import hashlib
-
 from dataclasses import dataclass, field
+
+from tqdm import tqdm
 
 from .base import CharacterAgent
 from registry import agents
@@ -36,16 +35,6 @@ Rules:
 - Base sub-keywords strictly on what is present or implied in the provided text.
 """
 
-CONTEXT_SUMMARY_SYSTEM_PROMPT = """You are a research assistant preparing condensed reference material for a character profiling pipeline.
-Summarize the given source text into a dense, information-rich summary about the target character.
-
-Rules:
-- Preserve concrete facts: names, dates, events, relationships, and specific details. Do not generalize them away.
-- Remove redundant phrasing, filler, and repeated information across sources.
-- Do not add commentary, headers, or meta-remarks about the summarization itself.
-- Aim for a summary that is significantly shorter than the source but still detailed enough to answer specific questions about the character.
-"""
-
 @dataclass
 class CoreKeyword:
     name: str
@@ -60,39 +49,12 @@ class KeywordAgent(CharacterAgent):
         temperature: float = 0.3,
         num_core_keywords: int = 4,
         num_sub_keywords: int = 5,
-        max_chars_per_source: int = 4000,
-        max_total_chars: int = 20000,
-        summary_trigger_chars: int = 6000,
+        input_max_size: int = 4000
     ):
-        super().__init__(model, temperature)
+        super().__init__(model, temperature, input_max_size)
         self.num_core_keywords = num_core_keywords
         self.num_sub_keywords = num_sub_keywords
-        self.max_chars_per_source = max_chars_per_source
-        self.max_total_chars = max_total_chars
-        self.summary_trigger_chars = summary_trigger_chars
-        self._context_summary_cache = {}
-
-    def _summarize_context(self, raw_context: str) -> str:
-        print(f"[context] summarizing {len(raw_context)} chars...")
-        summary = self._complete(CONTEXT_SUMMARY_SYSTEM_PROMPT, raw_context)
-        print(f"[context] summarized to {len(summary)} chars")
-        return summary
-
-    def _build_context(self, source_texts: list[str]) -> str:
-        trimmed = [t[: self.max_chars_per_source] for t in source_texts]
-        raw_context = "\n\n---\n\n".join(trimmed)[: self.max_total_chars]
-
-        if len(raw_context) <= self.summary_trigger_chars:
-            return raw_context
-
-        cache_key = hashlib.sha256(raw_context.encode("utf-8")).hexdigest()
-        if cache_key in self._context_summary_cache:
-            return self._context_summary_cache[cache_key]
-
-        summary = self._summarize_context(raw_context)
-        self._context_summary_cache[cache_key] = summary
-        return summary
-
+        
     def _parse_list(self, raw_output: str) -> list[str]:
         items = []
         for line in raw_output.strip().splitlines():
@@ -105,12 +67,7 @@ class KeywordAgent(CharacterAgent):
                 items.append(item)
         return items
 
-    def generate_core_keywords(self, character_name: str, source_texts: list[str]) -> list[str]:
-        if not source_texts:
-            raise ValueError(f"No source text available for '{character_name}'.")
-
-        context = self._build_context(source_texts)
-
+    def generate_core_keywords(self, character_name: str, context: str) -> list[str]:
         user_prompt = f"""Target character: {character_name}
 
 Source text:
@@ -121,12 +78,7 @@ Generate {self.num_core_keywords} core keywords about {character_name} now."""
         response = self._complete(CORE_KEYWORDS_SYSTEM_PROMPT, user_prompt)
         return self._parse_list(response)
 
-    def generate_sub_keywords(self, character_name: str, core_keyword: str, source_texts: list[str]) -> list[str]:
-        if not source_texts:
-            raise ValueError(f"No source text available for '{character_name}'.")
-
-        context = self._build_context(source_texts)
-
+    def generate_sub_keywords(self, character_name: str, core_keyword: str, context: str) -> list[str]:
         user_prompt = f"""Target character: {character_name}
 Core keyword: {core_keyword}
 
@@ -139,12 +91,17 @@ Generate {self.num_sub_keywords} sub-keywords about {character_name}'s "{core_ke
 
         return self._parse_list(response)
 
-    def generate_keywords(self, character_name: str, source_texts: list[str]) -> list[CoreKeyword]:
-        core_names = self.generate_core_keywords(character_name, source_texts)
+    def generate_keywords(self, character_name: str, context: str) -> list[CoreKeyword]:
+        chunks = self._chunk_text(context, self.input_max_size)
+
+        core_name_chunk_pairs: list[tuple[str, str]] = []
+        for chunk in tqdm(chunks, desc="Extraindo core keywords", unit="chunk"):
+            names = self.generate_core_keywords(character_name, chunk)
+            core_name_chunk_pairs += [(name, chunk) for name in names]
 
         core_keywords = []
-        for name in core_names:
-            sub_keywords = self.generate_sub_keywords(character_name, name, source_texts)
+        for name, source_chunk in tqdm(core_name_chunk_pairs, desc="Gerando sub-keywords", unit="keyword"):
+            sub_keywords = self.generate_sub_keywords(character_name, name, source_chunk)
             core_keywords.append(CoreKeyword(name=name, sub_keywords=sub_keywords))
 
         return core_keywords

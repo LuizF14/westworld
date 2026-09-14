@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from web_scraper.base import Searcher, Fetcher, Extractor
-from agents.base import CharacterAgent
+from agents.description_agent import DescriptionAgent
 
 @dataclass
 class CharacterDescriptionResult:
@@ -14,7 +14,7 @@ class CharacterDescriptionPipeline:
         searcher: Searcher,
         fetcher: Fetcher,
         html_extractor: Extractor,
-        description_agent: CharacterAgent,
+        description_agent: DescriptionAgent,
         max_results_per_query: int = 5,
         num_variants: int = 3,
     ):

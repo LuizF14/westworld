@@ -24,9 +24,11 @@ class CharacterAgent(ABC):
         self,
         model: str = "ollama/llama3",
         temperature: float = 0.3,
+        input_max_size: int = 4000
     ):
         self.model = model
         self.temperature = temperature
+        self.input_max_size = input_max_size
 
     @retry(
         retry=retry_if_exception_type(RateLimitError),
@@ -44,3 +46,24 @@ class CharacterAgent(ABC):
             temperature=self.temperature,
         )
         return response.choices[0].message.content
+
+    def _chunk_text(self, text: str, max_chars: int, overlap: int = 200) -> list[str]:
+        if len(text) <= max_chars:
+            return [text]
+
+        chunks = []
+        start = 0
+        while start < len(text):
+            end = start + max_chars
+            chunk = text[start:end]
+
+            if end < len(text):
+                last_break = max(chunk.rfind("\n\n"), chunk.rfind(". "))
+                if last_break > max_chars * 0.5:  
+                    chunk = chunk[: last_break + 1]
+                    end = start + last_break + 1
+
+            chunks.append(chunk.strip())
+            start = end - overlap if end < len(text) else end
+
+        return [c for c in chunks if c]

@@ -17,6 +17,7 @@ import web_scraper.searchers.duckduckgo
 import web_scraper.fetchers.http_fetcher
 import web_scraper.extractors.html_extractor
 from agents.keyword_agent import KeywordAgent
+from agents.summary_agent import SummaryAgent
 
 from pipelines.character_extended_info_pipeline import CharacterExtendedInfoPipeline
 
@@ -37,7 +38,7 @@ def main():
     fetcher = fetchers.build(cfg["fetcher"]["name"], **cfg["fetcher"].get("params", {}))
     extractor = extractors.build(cfg["extractor"]["name"], **cfg["extractor"].get("params", {}))
 
-    keyword_agent = KeywordAgent(model=cfg["description_agent"]["model"], temperature=cfg["description_agent"]["temperature"])
+    keyword_agent = KeywordAgent(model=cfg["keyword_agent"]["model"], temperature=cfg["keyword_agent"]["temperature"])
 
     pipeline = CharacterExtendedInfoPipeline(base_searcher, keyword_searcher, fetcher, extractor, keyword_agent)
 

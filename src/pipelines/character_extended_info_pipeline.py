@@ -52,8 +52,8 @@ class CharacterExtendedInfoPipeline:
         if not main_documents:
             raise RuntimeError(f"No document extracted to '{character_name}'.")
 
-        keywords = self.keyword_agent.generate_keywords(character_name, main_documents)
-        print(keywords)
+        raw_context = "\n\n---\n\n".join(main_documents)
+        keywords = self.keyword_agent.generate_keywords(character_name, raw_context)
 
         return CharacterExtendedInfo(
             character_name=character_name,

@@ -24,11 +24,13 @@ class CharacterAgent(ABC):
         self,
         model: str = "ollama/llama3",
         temperature: float = 0.3,
-        input_max_size: int = 4000
+        input_max_size: int = 4000,
+        fallback_models: list[str] | None = None,
     ):
         self.model = model
         self.temperature = temperature
         self.input_max_size = input_max_size
+        self.fallback_models = fallback_models or []
 
     @retry(
         retry=retry_if_exception_type(RateLimitError),
@@ -44,6 +46,7 @@ class CharacterAgent(ABC):
                 {"role": "user", "content": user_prompt},
             ],
             temperature=self.temperature,
+            fallbacks=self.fallback_models,
         )
         return response.choices[0].message.content
 

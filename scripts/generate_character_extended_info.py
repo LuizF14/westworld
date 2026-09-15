@@ -38,7 +38,12 @@ def main():
     fetcher = fetchers.build(cfg["fetcher"]["name"], **cfg["fetcher"].get("params", {}))
     extractor = extractors.build(cfg["extractor"]["name"], **cfg["extractor"].get("params", {}))
 
-    keyword_agent = KeywordAgent(model=cfg["keyword_agent"]["model"], temperature=cfg["keyword_agent"]["temperature"])
+    keyword_agent = KeywordAgent(
+        model=cfg["keyword_agent"]["model"], 
+        temperature=cfg["keyword_agent"]["temperature"],
+        input_max_size=cfg["keyword_agent"]["input_max_size"],
+        num_keywords_per_category=cfg["keyword_agent"]["num_keywords_per_category"]
+    )
 
     pipeline = CharacterExtendedInfoPipeline(base_searcher, keyword_searcher, fetcher, extractor, keyword_agent)
 

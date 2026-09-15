@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 
 from tqdm import tqdm
+from rapidfuzz import fuzz
 import re
 
 from .base import CharacterAgent
@@ -76,6 +77,19 @@ class KeywordAgent(CharacterAgent):
 
         return items
 
+    def _is_near_duplicate(self, name: str, existing_names: list[str], threshold: int = 85) -> bool:
+        normalized = name.strip().lower()
+        for existing in existing_names:
+            existing_normalized = existing.strip().lower()
+
+            if normalized in existing_normalized or existing_normalized in normalized:
+                return True
+
+            if fuzz.token_sort_ratio(normalized, existing_normalized) >= threshold:
+                return True
+
+        return False
+
     def _extract_keywords_for_category(self, character_name: str, context: str, category: str) -> list[str]:
         system_prompt = CATEGORY_SYSTEM_PROMPTS[category]
         user_prompt = f"""Target character: {character_name}
@@ -91,7 +105,7 @@ Generate up to {self.num_keywords_per_category} keywords in the "{category}" cat
     def generate_keywords(self, character_name: str, context: str) -> list[CoreKeyword]:
         chunks = self._chunk_text(context, self.input_max_size)
 
-        seen: set[tuple[str, str]] = set()
+        keywords_by_category: dict[str, list[str]] = {cat: [] for cat in CATEGORY_DEFINITIONS}
         keywords: list[CoreKeyword] = []
 
         total_calls = len(chunks) * len(CATEGORY_DEFINITIONS)
@@ -100,9 +114,9 @@ Generate up to {self.num_keywords_per_category} keywords in the "{category}" cat
                 for category in CATEGORY_DEFINITIONS:
                     names = self._extract_keywords_for_category(character_name, chunk, category)
                     for name in names:
-                        dedup_key = (category, name.strip().lower())
-                        if dedup_key not in seen:
-                            seen.add(dedup_key)
+                        existing_in_category = keywords_by_category[category]
+                        if not self._is_near_duplicate(name, existing_in_category):
+                            existing_in_category.append(name)
                             keywords.append(CoreKeyword(name=name, category=category))
                     pbar.update(1)
 
